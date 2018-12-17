@@ -1,0 +1,7 @@
+*.dll
+*.pdb
+*.exe
+*.config
+*.ini
+bin/
+obj/
