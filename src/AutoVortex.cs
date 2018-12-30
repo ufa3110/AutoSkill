@@ -18,7 +18,8 @@ namespace AutoVortex
         private bool isTownOrHideout;
         private readonly HashSet<EntityWrapper> nearbyMonsters = new HashSet<EntityWrapper>();
         private Timer vortexTimer;
-        private Stopwatch stopwatch;
+        private Stopwatch settingsStopwatch;
+        private Stopwatch intervalStopwatch;
         private KeyboardHelper keyboard;
         private int highlightSkill;
 
@@ -30,11 +31,23 @@ namespace AutoVortex
             Settings.Enable.OnValueChanged += OnSettingsToggle;
             Settings.VortexConnectedSkill.OnValueChanged += VortexConnectedSkillOnOnValueChanged;
 
-            stopwatch = new Stopwatch();
-            vortexTimer = new Timer(200) {AutoReset = true};
+            settingsStopwatch = new Stopwatch();
+            intervalStopwatch = Stopwatch.StartNew();
+            vortexTimer = new Timer(100) {AutoReset = true};
             vortexTimer.Elapsed += VortexTimerOnElapsed;
             vortexTimer.Start();
             keyboard = new KeyboardHelper(GameController);
+        }
+        
+        private bool ChatOpen
+        {
+            get
+            {
+                var chatBox = GameController?.Game?.IngameState?.UIRoot.GetChildAtIndex(1)?.GetChildAtIndex(106);
+                if (chatBox == null)
+                    return false;
+                return chatBox.ChildCount == 5;
+            }
         }
 
         private void VortexTimerOnElapsed(object sender, ElapsedEventArgs e)
@@ -48,7 +61,7 @@ namespace AutoVortex
         private void VortexConnectedSkillOnOnValueChanged()
         {
             highlightSkill = Settings.VortexConnectedSkill.Value - 1;
-            stopwatch.Restart();
+            settingsStopwatch.Restart();
         }
 
         private void OnSettingsToggle()
@@ -62,14 +75,14 @@ namespace AutoVortex
 
                     isTownOrHideout = GameController.Area.CurrentArea.IsTown;
 
-                    stopwatch.Reset();
+                    settingsStopwatch.Reset();
                     vortexTimer.Start();
                 }
                 else
                 {
                     GameController.Area.OnAreaChange -= AreaOnOnAreaChange;
 
-                    stopwatch.Stop();
+                    settingsStopwatch.Stop();
                     vortexTimer.Stop();
 
                     nearbyMonsters.Clear();
@@ -85,7 +98,7 @@ namespace AutoVortex
             base.Render();
             if (!Settings.Enable.Value) return;
 
-            if (stopwatch.IsRunning && stopwatch.ElapsedMilliseconds < 1200)
+            if (settingsStopwatch.IsRunning && settingsStopwatch.ElapsedMilliseconds < 1200)
             {
                 if (highlightSkill == -1)
                 {
@@ -100,7 +113,7 @@ namespace AutoVortex
             }
             else
             {
-                stopwatch.Stop();
+                settingsStopwatch.Stop();
             }
         }
 
@@ -153,10 +166,11 @@ namespace AutoVortex
                 if (EnoughMonstersInRange())
                 {
                     List<ActorSkill> actorSkills = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Actor>().ActorSkills;
-                    ActorSkill skillVortex = actorSkills.FirstOrDefault(x => x.Name == "FrostBoltNova" && x.CanBeUsed && x.SkillSlotIndex.Equals(Settings.VortexConnectedSkill.Value - 1));
-                    if (skillVortex != null)
+                    ActorSkill skillVortex = actorSkills.FirstOrDefault(x => x.Name == "FrostBoltNova" && x.CanBeUsed && x.SkillSlotIndex.Equals(Settings.VortexConnectedSkill.Value - 1) && intervalStopwatch.ElapsedMilliseconds > Settings.Frequency);
+                    if (skillVortex != null && !ChatOpen)
                     {
                         keyboard.KeyPressRelease(Settings.VortexKeyPressed.Value);
+                        intervalStopwatch.Restart();
                     }
                 }
             }

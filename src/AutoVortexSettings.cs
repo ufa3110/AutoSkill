@@ -15,6 +15,7 @@ namespace AutoVortex
             VortexConnectedSkill = new RangeNode<int>(1, 1, 8);
             NearbyMonster = new RangeNode<int>(5, 1, 100);
             NearbyMonsterRange = new RangeNode<int>(400, 1, 3000);
+            Frequency = new RangeNode<int>(4000, 100, 4000);
         }
 
         //Menu
@@ -28,5 +29,7 @@ namespace AutoVortex
         public RangeNode<int> NearbyMonster { get; set; }
         [Menu("Nearby Monster Range", 13, 1)]
         public RangeNode<int> NearbyMonsterRange { get; set; }
+        [Menu("Frequency", 14, 1)]
+        public RangeNode<int> Frequency { get; set; }
     }
 }
