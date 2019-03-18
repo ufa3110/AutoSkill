@@ -25,3 +25,5 @@ System.Runtime.CompilerServices.Unsafe.dll
 AutoSkill.pdb
 System.Numerics.Vectors.dll
 SharpDX.Desktop.pdb
+config.ini
+SharpDX.xml
