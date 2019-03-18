@@ -6,18 +6,19 @@ using System.Timers;
 using PoeHUD.Controllers;
 using PoeHUD.Models;
 using PoeHUD.Plugins;
+using PoeHUD.Poe;
 using PoeHUD.Poe.Components;
 using PoeHUD.Poe.RemoteMemoryObjects;
 using SharpDX;
 using Timer = System.Timers.Timer;
 
-namespace AutoVortex
+namespace AutoSkill
 {
-    public class AutoVortex : BaseSettingsPlugin<AutoVortexSettings>
+    public class AutoSkill : BaseSettingsPlugin<AutoSkillSettings>
     {
-        private bool isTownOrHideout;
+        private bool IsTownOrHideout => GameController.Area.CurrentArea.IsTown || GameController.Area.CurrentArea.IsHideout;
         private readonly HashSet<EntityWrapper> nearbyMonsters = new HashSet<EntityWrapper>();
-        private Timer vortexTimer;
+        private Timer skillTimer;
         private Stopwatch settingsStopwatch;
         private Stopwatch intervalStopwatch;
         private KeyboardHelper keyboard;
@@ -25,17 +26,16 @@ namespace AutoVortex
 
         public override void Initialise()
         {
-            PluginName = "Auto Vortex";
+            PluginName = "Auto Skill";
             
             OnSettingsToggle();
             Settings.Enable.OnValueChanged += OnSettingsToggle;
-            Settings.VortexConnectedSkill.OnValueChanged += VortexConnectedSkillOnOnValueChanged;
-
+            Settings.ConnectedSkill.OnValueChanged += ConnectedSkillOnOnValueChanged;
             settingsStopwatch = new Stopwatch();
             intervalStopwatch = Stopwatch.StartNew();
-            vortexTimer = new Timer(100) {AutoReset = true};
-            vortexTimer.Elapsed += VortexTimerOnElapsed;
-            vortexTimer.Start();
+            skillTimer = new Timer(100) {AutoReset = true};
+            skillTimer.Elapsed += SkillTimerOnElapsed;
+            skillTimer.Start();
             keyboard = new KeyboardHelper(GameController);
         }
         
@@ -50,17 +50,17 @@ namespace AutoVortex
             }
         }
 
-        private void VortexTimerOnElapsed(object sender, ElapsedEventArgs e)
+        private void SkillTimerOnElapsed(object sender, ElapsedEventArgs e)
         {
             if (Settings.Enable.Value)
             {
-                VortexMain();
+                SkillMain();
             }
         }
 
-        private void VortexConnectedSkillOnOnValueChanged()
+        private void ConnectedSkillOnOnValueChanged()
         {
-            highlightSkill = Settings.VortexConnectedSkill.Value - 1;
+            highlightSkill = Settings.ConnectedSkill.Value - 1;
             settingsStopwatch.Restart();
         }
 
@@ -70,20 +70,15 @@ namespace AutoVortex
             {
                 if (Settings.Enable.Value)
                 {
-                    GameController.Area.OnAreaChange += AreaOnOnAreaChange;
                     GameController.Area.RefreshState();
 
-                    isTownOrHideout = GameController.Area.CurrentArea.IsTown;
-
                     settingsStopwatch.Reset();
-                    vortexTimer.Start();
+                    skillTimer.Start();
                 }
                 else
                 {
-                    GameController.Area.OnAreaChange -= AreaOnOnAreaChange;
-
                     settingsStopwatch.Stop();
-                    vortexTimer.Stop();
+                    skillTimer.Stop();
 
                     nearbyMonsters.Clear();
                 }
@@ -117,14 +112,6 @@ namespace AutoVortex
             }
         }
 
-        private void AreaOnOnAreaChange(AreaController area)
-        {
-            if (Settings.Enable.Value)
-            {
-                isTownOrHideout = area.CurrentArea.IsTown || area.CurrentArea.IsHideout;
-            }
-        }
-
         public override void EntityAdded(EntityWrapper entity)
         {
             if (!Settings.Enable.Value)
@@ -145,7 +132,7 @@ namespace AutoVortex
             nearbyMonsters.Remove(entity);
         }
 
-        private void VortexMain()
+        private void SkillMain()
         {
             if (GameController == null || GameController.Window == null || GameController.Game.IngameState.Data.LocalPlayer == null || GameController.Game.IngameState.Data.LocalPlayer.Address == 0x00)
                 return;
@@ -157,19 +144,26 @@ namespace AutoVortex
                 return;
 
             var playerLife = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Life>();
-            if (playerLife == null || isTownOrHideout)
+            if (playerLife == null || IsTownOrHideout || IsChatOpen)
                 return;
 
             try
             { 
-
-                if (EnoughMonstersInRange())
+                if (EnoughMonstersInRange() || !Settings.CheckNearbyMonsters)
                 {
                     List<ActorSkill> actorSkills = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Actor>().ActorSkills;
-                    ActorSkill skillVortex = actorSkills.FirstOrDefault(x => x.Name == "FrostBoltNova" && x.CanBeUsed && x.SkillSlotIndex.Equals(Settings.VortexConnectedSkill.Value - 1) && intervalStopwatch.ElapsedMilliseconds > Settings.Frequency);
-                    if (skillVortex != null && !ChatOpen)
+                    ActorSkill actorSkill = actorSkills.FirstOrDefault(x => x.SkillSlotIndex.Equals(Settings.ConnectedSkill.Value - 1) && x.CanBeUsed && intervalStopwatch.ElapsedMilliseconds > Settings.Frequency);
+                    if (actorSkill != null && !ChatOpen)
                     {
-                        keyboard.KeyPressRelease(Settings.VortexKeyPressed.Value);
+                        if (actorSkill.Name.Equals("NewPhaseRun"))
+                        {
+                            List<Buff> buffs = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Life>().Buffs;
+                            var phaseRun = buffs.FirstOrDefault(x => x.Name.Equals("new_phase_run"));
+                            if (phaseRun != null)
+                                return;
+                        }
+
+                        keyboard.KeyPressRelease(Settings.SkillKeyPressed.Value);
                         intervalStopwatch.Restart();
                     }
                 }
@@ -178,6 +172,29 @@ namespace AutoVortex
             {
                 LogError(ex.Message, 3);
             }
+        }
+
+        private bool IsChatOpen
+        {
+            get
+            {
+                if (!(GameController?.InGame ?? false))
+                    return false;
+                var chatBox = GetRootElement(UI_ELEMENT.CHAT);
+                if (chatBox == null)
+                    return false;
+                return chatBox.ChildCount == 5;
+            }
+        }
+
+        private Element GetRootElement(UI_ELEMENT element)
+        {
+            return GameController?.Game?.IngameState?.UIRoot.GetChildAtIndex(1)?.GetChildAtIndex((int)element);
+        }
+
+        private enum UI_ELEMENT
+        {
+            CHAT = 110,
         }
 
         private bool EnoughMonstersInRange()
