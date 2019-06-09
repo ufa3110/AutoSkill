@@ -149,20 +149,12 @@ namespace AutoSkill
 
             try
             { 
-                if (EnoughMonstersInRange() || !Settings.CheckNearbyMonsters)
+                if (ShouldUseSkill())
                 {
-                    List<ActorSkill> actorSkills = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Actor>().ActorSkills;
-                    ActorSkill actorSkill = actorSkills.FirstOrDefault(x => x.SkillSlotIndex.Equals(Settings.ConnectedSkill.Value - 1) && x.CanBeUsed && intervalStopwatch.ElapsedMilliseconds > Settings.Frequency);
-                    if (actorSkill != null && !ChatOpen)
+                    var actorSkills = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Actor>().ActorSkills;
+                    var actorSkill = actorSkills.FirstOrDefault(CanUseSkill);
+                    if (actorSkill != null)
                     {
-                        if (actorSkill.Name.Equals("NewPhaseRun"))
-                        {
-                            List<Buff> buffs = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Life>().Buffs;
-                            var phaseRun = buffs.FirstOrDefault(x => x.Name.Equals("new_phase_run"));
-                            if (phaseRun != null)
-                                return;
-                        }
-
                         keyboard.KeyPressRelease(Settings.SkillKeyPressed.Value);
                         intervalStopwatch.Restart();
                     }
@@ -172,6 +164,36 @@ namespace AutoSkill
             {
                 LogError(ex.Message, 3);
             }
+        }
+
+        private bool ShouldUseSkill()
+        {
+            if (Settings.ThrottleFrequency && intervalStopwatch.ElapsedMilliseconds < Settings.Frequency)
+                return false;
+            if (Settings.CheckNearbyMonsters && !EnoughMonstersInRange())
+                return false;
+            if (Settings.UseBelowHpPercent && (GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Life>().HPPercentage * 100) > Settings.HpPercentage)
+                return false;
+            return true;
+        }
+
+        private bool CanUseSkill(ActorSkill skill)
+        {
+            if (ChatOpen)
+                return false;
+
+            if (!skill.CanBeUsed || !skill.SkillSlotIndex.Equals(Settings.ConnectedSkill.Value - 1))
+                return false;
+
+            // Skip using phase run when we already have the buff
+            if (skill.Name.Equals("NewPhaseRun"))
+            {
+                var buffs = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Life>().Buffs;
+                if (buffs.Any(x => x.Name.Equals("new_phase_run")))
+                    return false;
+            }
+            
+            return true;
         }
 
         private bool IsChatOpen
