@@ -20,7 +20,7 @@ namespace AutoSkill
             NearbyMonster = new RangeNode<int>(5, 1, 100);
             NearbyMonsterRange = new RangeNode<int>(400, 1, 3000);
             HpPercentage = new RangeNode<int>(10, 0, 100);
-            Frequency = new RangeNode<int>(4000, 100, 4000);
+            Frequency = new RangeNode<int>(4000, 0, 10000);
         }
 
         //Menu
