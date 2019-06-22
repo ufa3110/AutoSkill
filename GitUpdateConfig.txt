@@ -1,0 +1,8 @@
+Owner: Macaddict42
+Name: AutoSkill
+Repository
+
+Ignore:
+src
+.gitignore
+README.md
