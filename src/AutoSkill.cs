@@ -151,13 +151,13 @@ namespace AutoSkill
             { 
                 if (ShouldUseSkill())
                 {
-                    var actorSkills = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Actor>().ActorSkills;
-                    var actorSkill = actorSkills.FirstOrDefault(CanUseSkill);
-                    if (actorSkill != null)
-                    {
+                    // var actorSkills = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Actor>().ActorSkills;
+                    // var actorSkill = actorSkills.FirstOrDefault(CanUseSkill);
+                    // if (actorSkill != null)
+                    // {
                         keyboard.KeyPressRelease(Settings.SkillKeyPressed.Value);
                         intervalStopwatch.Restart();
-                    }
+                    // }
                 }
             }
             catch (Exception ex)
