@@ -155,8 +155,11 @@ namespace AutoSkill
                     // var actorSkill = actorSkills.FirstOrDefault(CanUseSkill);
                     // if (actorSkill != null)
                     // {
+                    if (CanUseSkill())
+                    {
                         keyboard.KeyPressRelease(Settings.SkillKeyPressed.Value);
                         intervalStopwatch.Restart();
+                    }
                     // }
                 }
             }
@@ -177,11 +180,13 @@ namespace AutoSkill
             return true;
         }
 
-        private bool CanUseSkill(ActorSkill skill)
+        // private bool CanUseSkill(ActorSkill skill)
+        private bool CanUseSkill()
         {
             if (ChatOpen)
                 return false;
 
+            /*
             if (!skill.CanBeUsed || !skill.SkillSlotIndex.Equals(Settings.ConnectedSkill.Value - 1))
                 return false;
 
@@ -193,6 +198,8 @@ namespace AutoSkill
                     return false;
             }
             
+            */
+
             return true;
         }
 
