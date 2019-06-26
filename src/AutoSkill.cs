@@ -151,16 +151,19 @@ namespace AutoSkill
             { 
                 if (ShouldUseSkill())
                 {
-                    // var actorSkills = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Actor>().ActorSkills;
-                    // var actorSkill = actorSkills.FirstOrDefault(CanUseSkill);
-                    // if (actorSkill != null)
-                    // {
-                    if (CanUseSkill())
+                    ActorSkill actorSkill = null;
+                    try
+                    {
+                        var actorSkills = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Actor>().ActorSkills;
+                        actorSkill = actorSkills.FirstOrDefault(CanUseSkill);
+                    }
+                    catch { }
+
+                    if (CanUseSkill(actorSkill))
                     {
                         keyboard.KeyPressRelease(Settings.SkillKeyPressed.Value);
                         intervalStopwatch.Restart();
                     }
-                    // }
                 }
             }
             catch (Exception ex)
@@ -180,27 +183,29 @@ namespace AutoSkill
             return true;
         }
 
-        // private bool CanUseSkill(ActorSkill skill)
-        private bool CanUseSkill()
+        private bool CanUseSkill(ActorSkill skill)
         {
-            if (ChatOpen)
-                return false;
+            bool isChatClose = !ChatOpen;
 
-            /*
-            if (!skill.CanBeUsed || !skill.SkillSlotIndex.Equals(Settings.ConnectedSkill.Value - 1))
-                return false;
-
-            // Skip using phase run when we already have the buff
-            if (skill.Name.Equals("NewPhaseRun"))
+            if (isChatClose == true)
             {
-                var buffs = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Life>().Buffs;
-                if (buffs.Any(x => x.Name.Equals("new_phase_run")))
-                    return false;
-            }
-            
-            */
+                if (skill != null)
+                {
+                    if (!skill.CanBeUsed || !skill.SkillSlotIndex.Equals(Settings.ConnectedSkill.Value - 1))
+                        return false;
 
-            return true;
+                    // Skip using phase run when we already have the buff
+                    if (skill.Name.Equals("NewPhaseRun"))
+                    {
+                        var buffs = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Life>().Buffs;
+                        if (buffs.Any(x => x.Name.Equals("new_phase_run")))
+                            return false;
+                    }
+                };
+                return true;
+            }
+
+            return false;
         }
 
         private bool IsChatOpen
@@ -223,7 +228,7 @@ namespace AutoSkill
 
         private enum UI_ELEMENT
         {
-            CHAT = 110,
+            CHAT = 113,
         }
 
         private bool EnoughMonstersInRange()
