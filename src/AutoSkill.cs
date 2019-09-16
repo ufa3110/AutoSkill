@@ -3,12 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Timers;
-using PoeHUD.Controllers;
-using PoeHUD.Models;
-using PoeHUD.Plugins;
-using PoeHUD.Poe;
-using PoeHUD.Poe.Components;
-using PoeHUD.Poe.RemoteMemoryObjects;
+using ExileCore;
+using ExileCore.PoEMemory;
+using ExileCore.PoEMemory.Components;
+using ExileCore.PoEMemory.MemoryObjects;
+using ExileCore.Shared.Enums;
 using SharpDX;
 using Timer = System.Timers.Timer;
 
@@ -17,28 +16,67 @@ namespace AutoSkill
     public class AutoSkill : BaseSettingsPlugin<AutoSkillSettings>
     {
         private bool IsTownOrHideout => GameController.Area.CurrentArea.IsTown || GameController.Area.CurrentArea.IsHideout;
-        private readonly HashSet<EntityWrapper> nearbyMonsters = new HashSet<EntityWrapper>();
+        private readonly Queue<Entity> EntityAddedQueue = new Queue<Entity>();
         private Timer skillTimer;
         private Stopwatch settingsStopwatch;
         private Stopwatch intervalStopwatch;
         private KeyboardHelper keyboard;
         private int highlightSkill;
 
-        public override void Initialise()
+        // public DateTime buildDate;
+        // private WaitTime _workCoroutine;
+        // private uint coroutineCounter;
+        // private Coroutine useSkillCoroutine;
+
+        public AutoSkill()
         {
-            PluginName = "Auto Skill";
-            
+            Name = "AutoSkill";
+        }
+
+        // https://stackoverflow.com/questions/826777/how-to-have-an-auto-incrementing-version-number-visual-studio
+        // public Version Version { get; } = Assembly.GetExecutingAssembly().GetName().Version;
+        // public string PluginVersion { get; set; }
+
+        public override bool Initialise()
+        {
+            // buildDate = new DateTime(2000, 1, 1).AddDays(Version.Build).AddSeconds(Version.Revision * 2);
+            // PluginVersion = $"{Version}";
+
+            // _workCoroutine = new WaitTime(Settings.ExtraDelay);
+            // Settings.ExtraDelay.OnValueChanged += (sender, i) => _workCoroutine = new WaitTime(i);
+
             OnSettingsToggle();
-            Settings.Enable.OnValueChanged += OnSettingsToggle;
-            Settings.ConnectedSkill.OnValueChanged += ConnectedSkillOnOnValueChanged;
+            Settings.Enable.OnValueChanged += (sender, e) => OnSettingsToggle();
+            Settings.ConnectedSkill.OnValueChanged += (sender, e) => ConnectedSkillOnOnValueChanged();
             settingsStopwatch = new Stopwatch();
             intervalStopwatch = Stopwatch.StartNew();
             skillTimer = new Timer(100) {AutoReset = true};
             skillTimer.Elapsed += SkillTimerOnElapsed;
             skillTimer.Start();
             keyboard = new KeyboardHelper(GameController);
+
+            return true;
         }
-        
+        /*
+        private IEnumerator MainWorkCoroutine()
+        {
+            while (true)
+            {
+                yield return FindItemToPick();
+
+                coroutineCounter++;
+                useSkillCoroutine.UpdateTicks(coroutineCounter);
+                yield return _workCoroutine;
+            }
+        }
+        public override Job Tick()
+        {
+            if (Input.GetKeyState(Keys.Escape)) useSkillCoroutine.Pause();
+
+            return null;
+        }
+        */
+
         private bool ChatOpen
         {
             get
@@ -80,7 +118,7 @@ namespace AutoSkill
                     settingsStopwatch.Stop();
                     skillTimer.Stop();
 
-                    nearbyMonsters.Clear();
+                    EntityAddedQueue.Clear();
                 }
             }
             catch (Exception)
@@ -103,7 +141,7 @@ namespace AutoSkill
                 else
                 {
                     IngameUIElements ingameUiElements = GameController.Game.IngameState.IngameUi;
-                    Graphics.DrawFrame(ingameUiElements.SkillBar[highlightSkill].GetClientRect(), 3f, Color.Yellow);
+                    Graphics.DrawFrame(ingameUiElements.SkillBar[highlightSkill].GetClientRect(), Color.Yellow, 63);
                 }
             }
             else
@@ -112,24 +150,25 @@ namespace AutoSkill
             }
         }
 
-        public override void EntityAdded(EntityWrapper entity)
+        public override void EntityAdded(Entity Entity)
         {
-            if (!Settings.Enable.Value)
-                return;
+            if (!Settings.Enable.Value) return;
 
-            if (entity.IsAlive && entity.IsHostile && entity.HasComponent<Monster>())
+            if (Entity.IsAlive && Entity.IsHostile && (Entity.Type == EntityType.Monster))
             {
-                entity.GetComponent<Positioned>();
-                nearbyMonsters.Add(entity);
+                Entity.GetComponent<Positioned>();
+                EntityAddedQueue.Enqueue(Entity);
             }
         }
 
-        public override void EntityRemoved(EntityWrapper entity)
+        public override void EntityRemoved(Entity Entity)
         {
-            if (!Settings.Enable.Value)
-                return;
+            if (!Settings.Enable.Value) return;
+        }
 
-            nearbyMonsters.Remove(entity);
+        public override void AreaChange(AreaInstance Area)
+        {
+            EntityAddedQueue.Clear();
         }
 
         private void SkillMain()
@@ -174,7 +213,7 @@ namespace AutoSkill
 
         private bool ShouldUseSkill()
         {
-            if (Settings.ThrottleFrequency && intervalStopwatch.ElapsedMilliseconds < Settings.Frequency)
+            if (Settings.ThrottleFrequency && intervalStopwatch.ElapsedMilliseconds < Settings.ExtraDelay)
                 return false;
             if (Settings.CheckNearbyMonsters && !EnoughMonstersInRange())
                 return false;
@@ -236,11 +275,11 @@ namespace AutoSkill
             Vector3 positionPlayer = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Render>().Pos;
 
             int monstersInRange = 0;
-            foreach (EntityWrapper monster in new List<EntityWrapper>(nearbyMonsters))
+            foreach (Entity Monster in new List<Entity>(EntityAddedQueue))
             {
-                if (monster.IsValid && monster.IsAlive && !monster.Path.Contains("ElementalSummoned"))
+                if (Monster.IsValid && Monster.IsAlive && !Monster.Path.Contains("ElementalSummoned"))
                 {
-                    Render positionMonster = monster.GetComponent<Render>();
+                    Render positionMonster = Monster.GetComponent<Render>();
                     int distance = (int)Math.Sqrt(Math.Pow(positionPlayer.X - positionMonster.X, 2.0) + Math.Pow(positionPlayer.Y - positionMonster.Y, 2.0));
                     if (distance <= Settings.NearbyMonsterRange.Value)
                         monstersInRange++;
@@ -267,21 +306,27 @@ namespace AutoSkill
                 plottedCirclePoints.Add(new Vector3((float)x, (float)y, vector3Pos.Z));
             }
 
-            var rndEntity = GameController.Entities.FirstOrDefault(x =>
-                x.HasComponent<Render>() && GameController.Player.Address != x.Address);
+            // var rndEntity = GameController.Entities.FirstOrDefault(x =>
+            //     x.HasComponent<Render>() && GameController.Player.Address != x.Address);
 
             for (var i = 0; i < plottedCirclePoints.Count; i++)
             {
                 if (i >= plottedCirclePoints.Count - 1)
                 {
-                    var pointEnd1 = camera.WorldToScreen(plottedCirclePoints.Last(), rndEntity);
-                    var pointEnd2 = camera.WorldToScreen(plottedCirclePoints[0], rndEntity);
+                    // var pointEnd1 = camera.WorldToScreen(plottedCirclePoints.Last(), rndEntity);
+                    // var pointEnd2 = camera.WorldToScreen(plottedCirclePoints[0], rndEntity);
+
+                    var pointEnd1 = camera.WorldToScreen(plottedCirclePoints.Last());
+                    var pointEnd2 = camera.WorldToScreen(plottedCirclePoints[0]);
                     Graphics.DrawLine(pointEnd1, pointEnd2, lineWidth, color);
                     return;
                 }
 
-                var point1 = camera.WorldToScreen(plottedCirclePoints[i], rndEntity);
-                var point2 = camera.WorldToScreen(plottedCirclePoints[i + 1], rndEntity);
+                // var point1 = camera.WorldToScreen(plottedCirclePoints[i], rndEntity);
+                // var point2 = camera.WorldToScreen(plottedCirclePoints[i + 1], rndEntity);
+
+                var point1 = camera.WorldToScreen(plottedCirclePoints[i]);
+                var point2 = camera.WorldToScreen(plottedCirclePoints[i + 1]);
                 Graphics.DrawLine(point1, point2, lineWidth, color);
             }
         }
