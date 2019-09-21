@@ -277,7 +277,7 @@ namespace AutoSkill
             int monstersInRange = 0;
             foreach (Entity Monster in new List<Entity>(EntityAddedQueue))
             {
-                if (Monster.IsValid && Monster.IsAlive && !Monster.Path.Contains("ElementalSummoned"))
+                if (Monster.HasComponent<Monster>() && Monster.IsValid && Monster.IsHostile && Monster.IsAlive && !Monster.IsHidden && !Monster.Path.Contains("ElementalSummoned"))
                 {
                     Render positionMonster = Monster.GetComponent<Render>();
                     int distance = (int)Math.Sqrt(Math.Pow(positionPlayer.X - positionMonster.X, 2.0) + Math.Pow(positionPlayer.Y - positionMonster.Y, 2.0));
