@@ -154,7 +154,7 @@ namespace AutoSkill
         {
             if (!Settings.Enable.Value) return;
 
-            if (Entity.IsAlive && Entity.IsHostile && (Entity.Type == EntityType.Monster))
+            if ((Entity.Type == EntityType.Monster) && Entity.IsAlive && Entity.IsHostile && Entity.IsTargetable)
             {
                 Entity.GetComponent<Positioned>();
                 EntityAddedQueue.Enqueue(Entity);
