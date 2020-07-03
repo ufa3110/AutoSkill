@@ -18,6 +18,7 @@ namespace AutoSkill
             SkillSettings = new EmptyNode();
             CheckNearbyMonsters = new ToggleNode(false);
             UseBelowHpPercent = new ToggleNode(false);
+            UseWhileGracePeriod = new ToggleNode(false);
             ThrottleFrequency = new ToggleNode(false);
             ConnectedSkill = new RangeNode<int>(1, 1, 8);
             NearbyMonster = new RangeNode<int>(5, 1, 100);
@@ -45,16 +46,22 @@ namespace AutoSkill
         [Menu("Nearby Monsters", 13, 2)]
         public RangeNode<int> NearbyMonster { get; set; }
 
-        [Menu("Use When HP Is Below %", 3)]
+        [Menu("HP and buffs settings", 3)]
+        public EmptyNode _ { get; set; }
+
+        [Menu("Use When HP Is Below %", 1, 3)]
         public ToggleNode UseBelowHpPercent { get; set; }
 
-        [Menu("Delay", 14, 3)]
+        [Menu("HP %", 2, 3)]
         public RangeNode<int> HpPercentage { get; set; }
 
-        [Menu("Throttle Frequency", 4)]
+        [Menu("Allow use while has Grace Period buff is active", 3, 3)]
+        public ToggleNode UseWhileGracePeriod { get; set; }
+
+        [Menu("Throttle Frequency", 5)]
         public ToggleNode ThrottleFrequency { get; set; }
 
-        [Menu("Delay", 15, 4)]
+        [Menu("Delay", 15, 5)]
         public RangeNode<int> ExtraDelay { get; set; }
 
         public ToggleNode Enable { get; set; }

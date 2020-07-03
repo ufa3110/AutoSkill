@@ -92,7 +92,17 @@ namespace AutoSkill
         {
             if (Settings.Enable.Value)
             {
-                SkillMain();
+                var hasGracePeriod = false;
+                try
+                {
+                    hasGracePeriod = GameController.Player.GetComponent<Life>().HasBuff("grace_period");
+                }
+                catch (Exception ex)
+                {
+                    LogError($"{Name}: Cannot get Grace Period buff state. Try to update ExileApi.\n{ex.Message}");
+                }
+                if (!hasGracePeriod)
+                    SkillMain();
             }
         }
 
@@ -128,7 +138,6 @@ namespace AutoSkill
 
         public override void Render()
         {
-            base.Render();
             if (!Settings.Enable.Value) return;
 
             if (settingsStopwatch.IsRunning && settingsStopwatch.ElapsedMilliseconds < 1200)
