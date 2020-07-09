@@ -81,8 +81,8 @@ namespace AutoSkill
         {
             get
             {
-                var chatBox = GameController?.Game?.IngameState?.UIRoot.GetChildAtIndex(1)?.GetChildAtIndex(116);
-                if (chatBox == null)
+                var chatBox = GameController?.Game?.IngameState?.UIRoot.GetChildAtIndex(1)?.GetChildAtIndex(124).GetChildAtIndex(0);
+                if (chatBox == null || chatBox.IsVisible == true)
                     return false;
                 return chatBox.ChildCount == 5;
             }
