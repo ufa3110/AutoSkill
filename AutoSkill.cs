@@ -23,6 +23,9 @@ namespace AutoSkill
         private KeyboardHelper keyboard;
         private int highlightSkill;
 
+        private Element _chatBox;
+        private bool _skipChatBoxCheck = false;
+
         // public DateTime buildDate;
         // private WaitTime _workCoroutine;
         // private uint coroutineCounter;
@@ -54,6 +57,13 @@ namespace AutoSkill
             skillTimer.Elapsed += SkillTimerOnElapsed;
             skillTimer.Start();
             keyboard = new KeyboardHelper(GameController);
+
+            _chatBox = GameController.IngameState.IngameUi.ChatBox;
+            if (_chatBox.Address == 0)
+            {
+                LogMessage($"{Name}: Can't find ChatBox element, skills will used even chat is ipen. Try to update ExileApi.", 5);
+                _skipChatBoxCheck = true;
+            }
 
             return true;
         }
@@ -101,8 +111,10 @@ namespace AutoSkill
                 {
                     LogError($"{Name}: Cannot get Grace Period buff state. Try to update ExileApi.\n{ex.Message}");
                 }
-                if (!hasGracePeriod)
-                    SkillMain();
+                if (hasGracePeriod) return;
+                if (!_skipChatBoxCheck && _chatBox.GetChildAtIndex(0).IsVisible == true) return;
+
+                SkillMain();
             }
         }
 
@@ -233,27 +245,20 @@ namespace AutoSkill
 
         private bool CanUseSkill(ActorSkill skill)
         {
-            bool isChatClose = !ChatOpen;
-
-            if (isChatClose == true)
+            if (skill != null)
             {
-                if (skill != null)
+                if (!skill.CanBeUsed || !skill.SkillSlotIndex.Equals(Settings.ConnectedSkill.Value - 1))
+                    return false;
+
+                // Skip using phase run when we already have the buff
+                if (skill.Name.Equals("NewPhaseRun"))
                 {
-                    if (!skill.CanBeUsed || !skill.SkillSlotIndex.Equals(Settings.ConnectedSkill.Value - 1))
+                    var buffs = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Life>().Buffs;
+                    if (buffs.Any(x => x.Name.Equals("new_phase_run")))
                         return false;
-
-                    // Skip using phase run when we already have the buff
-                    if (skill.Name.Equals("NewPhaseRun"))
-                    {
-                        var buffs = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Life>().Buffs;
-                        if (buffs.Any(x => x.Name.Equals("new_phase_run")))
-                            return false;
-                    }
-                };
-                return true;
-            }
-
-            return false;
+                }
+            };
+            return true;
         }
 
         private bool IsChatOpen
