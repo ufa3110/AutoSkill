@@ -23,7 +23,7 @@ namespace AutoSkill
         private KeyboardHelper keyboard;
         private int highlightSkill;
 
-        private Element _chatBox;
+        private Element _chatBox { get { return GameController.IngameState.IngameUi.GetChildAtIndex(40).GetChildAtIndex(2); } }
         private bool _skipChatBoxCheck = false;
 
         // public DateTime buildDate;
@@ -58,7 +58,6 @@ namespace AutoSkill
             skillTimer.Start();
             keyboard = new KeyboardHelper(GameController);
 
-            _chatBox = GameController.IngameState.IngameUi.ChatBox;
             if (_chatBox.Address == 0)
             {
                 LogMessage($"{Name}: Can't find ChatBox element, skills will used even chat is ipen. Try to update ExileApi.", 5);
@@ -112,7 +111,7 @@ namespace AutoSkill
                     LogError($"{Name}: Cannot get Grace Period buff state. Try to update ExileApi.\n{ex.Message}");
                 }
                 if (hasGracePeriod) return;
-                if (!_skipChatBoxCheck && _chatBox.GetChildAtIndex(0).IsVisible == true) return;
+                if (!_skipChatBoxCheck && _chatBox.IsVisible == true) return;
 
                 SkillMain();
             }
