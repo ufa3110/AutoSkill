@@ -8,7 +8,7 @@ namespace AutoSkill
     public static class Keyboard
     {
         [DllImport("user32.dll")]
-        private static extern uint keybd_event(byte bVk, byte bScan, int dwFlags, int dwExtraInfo);
+        private static extern uint Keybd_event(byte bVk, byte bScan, int dwFlags, int dwExtraInfo);
 
         private const int KEYEVENTF_EXTENDEDKEY = 0x0001;
         private const int KEYEVENTF_KEYUP = 0x0002;
@@ -19,12 +19,12 @@ namespace AutoSkill
 
         public static void KeyDown(Keys key)
         {
-            keybd_event((byte) key, 0, KEYEVENTF_EXTENDEDKEY | 0, 0);
+            Keybd_event((byte) key, 0, KEYEVENTF_EXTENDEDKEY | 0, 0);
         }
 
         public static void KeyUp(Keys key)
         {
-            keybd_event((byte) key, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); //0x7F
+            Keybd_event((byte) key, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); //0x7F
         }
 
         public static void KeyPress(Keys key)
