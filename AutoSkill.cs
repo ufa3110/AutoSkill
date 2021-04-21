@@ -104,7 +104,7 @@ namespace AutoSkill
                 var hasGracePeriod = false;
                 try
                 {
-                    hasGracePeriod = GameController.Player.GetComponent<Life>().HasBuff("grace_period");
+                    hasGracePeriod = GameController.Player.HasComponent<Buffs>() ? GameController.Player.GetComponent<Buffs>().HasBuff("grace_period") : false;
                 }
                 catch (Exception ex)
                 {
@@ -252,8 +252,8 @@ namespace AutoSkill
                 // Skip using phase run when we already have the buff
                 if (skill.Name.Equals("NewPhaseRun"))
                 {
-                    var buffs = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Life>().Buffs;
-                    if (buffs.Any(x => x.Name.Equals("new_phase_run")))
+                    var buffs = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Buffs>().BuffsList;
+                    if (buffs != null && buffs.Any(x => x.Name.Equals("new_phase_run")))
                         return false;
                 }
             };
