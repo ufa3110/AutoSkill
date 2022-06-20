@@ -149,25 +149,33 @@ namespace AutoSkill
 
         public override void Render()
         {
-            if (!Settings.Enable.Value) return;
-
-            if (settingsStopwatch.IsRunning && settingsStopwatch.ElapsedMilliseconds < 1200)
+            try
             {
-                if (highlightSkill == -1)
+                if (!Settings.Enable.Value) return;
+
+                if (settingsStopwatch.IsRunning && settingsStopwatch.ElapsedMilliseconds < 1200)
                 {
-                    var pos = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Render>().Pos;
-                    DrawEllipseToWorld(pos, Settings.NearbyMonster.Value, 50, 2, Color.Yellow);
+                    if (highlightSkill == -1)
+                    {
+                        var pos = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Render>().Pos;
+                        DrawEllipseToWorld(pos, Settings.NearbyMonster.Value, 50, 2, Color.Yellow);
+                    }
+                    else
+                    {
+                        IngameUIElements ingameUiElements = GameController.Game.IngameState.IngameUi;
+                        Graphics.DrawFrame(ingameUiElements.SkillBar[highlightSkill].GetClientRect(), Color.Yellow, 63);
+                    }
                 }
                 else
                 {
-                    IngameUIElements ingameUiElements = GameController.Game.IngameState.IngameUi;
-                    Graphics.DrawFrame(ingameUiElements.SkillBar[highlightSkill].GetClientRect(), Color.Yellow, 63);
+                    settingsStopwatch.Stop();
                 }
             }
-            else
+            catch (Exception ex)
             {
-                settingsStopwatch.Stop();
+                LogError("RENDER ERROR: "+ex);
             }
+            
         }
 
         public override void EntityAdded(Entity Entity)
