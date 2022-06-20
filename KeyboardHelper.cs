@@ -18,6 +18,7 @@ namespace AutoSkill
         public KeyboardHelper(GameController g)
         {
             _gameHandle = g;
+            inputSimulator = new InputSimulator();
         }
 
         public void SetLatency(float latency)
