@@ -213,8 +213,8 @@ namespace AutoSkill
                     ActorSkill actorSkill = null;
                     try
                     {
-                        var actorSkills = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Actor>().ActorSkills;
-                        actorSkill = actorSkills.FirstOrDefault(CanUseSkill);
+                        var actorSkills = GameController.Game.IngameState.Data.LocalPlayer.GetComponent<Actor>()?.ActorSkills;
+                        actorSkill = actorSkills?.FirstOrDefault(CanUseSkill);
                     }
                     catch { }
 
