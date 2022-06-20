@@ -4,12 +4,16 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 
+using WindowsInput;
+using WindowsInput.Native;
+
 namespace AutoSkill
 {
     internal class KeyboardHelper
     {
         private readonly GameController _gameHandle;
         private float _curLatency;
+        private InputSimulator inputSimulator;
 
         public KeyboardHelper(GameController g)
         {
@@ -34,7 +38,7 @@ namespace AutoSkill
         private static extern short GetKeyState(int nVirtKey);
         public void KeyDown(Keys key)
         {
-            Keyboard.KeyPress(key);
+            inputSimulator.Keyboard.KeyPress((VirtualKeyCode)key);
         }
         
         public bool KeyPressRelease(Keys key)
