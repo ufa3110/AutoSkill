@@ -13,12 +13,14 @@ namespace AutoSkill
     {
         private readonly GameController _gameHandle;
         private float _curLatency;
-        private InputSimulator inputSimulator;
+        private InputSimulator _inputSimulator;
+        private Random _random;
 
         public KeyboardHelper(GameController g)
         {
             _gameHandle = g;
-            inputSimulator = new InputSimulator();
+            _inputSimulator = new InputSimulator();
+            _random = new Random();
         }
 
         public void SetLatency(float latency)
@@ -39,7 +41,7 @@ namespace AutoSkill
         private static extern short GetKeyState(int nVirtKey);
         public void KeyDown(Keys key)
         {
-            inputSimulator.Keyboard.KeyPress((VirtualKeyCode)key);
+            _inputSimulator.Keyboard.KeyPress((VirtualKeyCode)key);
         }
         
         public bool KeyPressRelease(Keys key)
@@ -48,12 +50,12 @@ namespace AutoSkill
             var lat = (int)(_curLatency);
             if (lat < 1000)
             {
-                Thread.Sleep(lat);
+                Thread.Sleep(lat + _random.Next(100, 300));
                 return true;
             }
             else
             {
-                Thread.Sleep(1000);
+                Thread.Sleep(1000 + _random.Next(100, 300));
                 return false;
             }
         }
